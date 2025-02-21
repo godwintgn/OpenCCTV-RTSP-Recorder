@@ -15,7 +15,7 @@ logging.getLogger().addHandler(log_handler)
 logging.getLogger().setLevel(logging.INFO)
 
 # Configuration settings
-RTSP_URL = "rtsp://admin:GxhAgYMYZi7Y@192.168.1.35:554/ch0_0.264"  # Replace with actual RTSP URL
+RTSP_URL = "rtsp url"  # Replace with actual RTSP URL
 OUTPUT_FOLDER = "C:\\Users\\Godwin\\Videos\\cctv_entrance"  # Folder to save recordings
 MAX_FOLDER_SIZE_GB = 50  # Max allowed storage size in GB
 CLIP_DURATION = 180  # Duration of each recording clip in seconds (3 minutes)
