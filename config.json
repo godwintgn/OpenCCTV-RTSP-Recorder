@@ -1,0 +1,12 @@
+{
+    "RTSP_URL": "rtsp url",
+    "OUTPUT_FOLDER": "C:\\Users\\Godwin\\Videos\\cctv_entrance",
+    "MAX_FOLDER_SIZE_GB": 50,
+    "VIDEO_CLIP_DURATION": 600,
+    "_comment": "VIDEO_CLIP_DURATION is in seconds (600 = 10 min)",
+    "CHECK_STREAM_DELAY": 5,
+    "DELETE_CHECK_INTERVAL": 10,
+    "FFMPEG_TIMEOUT": 5000000,
+    "AUDIO_BITRATE": "64k"
+   
+}
