@@ -1,38 +1,42 @@
 import os
 import time
+import json
 import subprocess
 import logging
-import shutil
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
 
+# ✅ Load Configuration from JSON
+CONFIG_FILE = "config.json"
+
+def load_config():
+    """Load settings from config.json."""
+    with open(CONFIG_FILE, "r") as file:
+        return json.load(file)
+
+config = load_config()
+
+# ✅ Use settings from config.json
+RTSP_URL = config["RTSP_URL"]
+OUTPUT_FOLDER = config["OUTPUT_FOLDER"]
+MAX_FOLDER_SIZE_GB = config["MAX_FOLDER_SIZE_GB"]
+CHECK_STREAM_DELAY = config["CHECK_STREAM_DELAY"]
+DELETE_CHECK_INTERVAL = config["DELETE_CHECK_INTERVAL"]
+FFMPEG_TIMEOUT = config["FFMPEG_TIMEOUT"]
+AUDIO_BITRATE = config["AUDIO_BITRATE"]
+VIDEO_CLIP_DURATION = config["VIDEO_CLIP_DURATION"]
+
 # Configure rotating log file (5MB per file, keep last 3 logs)
-log_handler = RotatingFileHandler(
-    "cctv_recorder.log", maxBytes=5 * 1024 * 1024, backupCount=3
-)
+log_handler = RotatingFileHandler("cctv_recorder.log", maxBytes=5 * 1024 * 1024, backupCount=3)
 log_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
 logging.getLogger().addHandler(log_handler)
 logging.getLogger().setLevel(logging.INFO)
 
-# Configuration settings
-RTSP_URL = "rtsp url"  # Replace with actual RTSP URL
-OUTPUT_FOLDER = "C:\\Users\\Godwin\\Videos\\cctv_entrance"  # Folder to save recordings
-MAX_FOLDER_SIZE_GB = 50  # Max allowed storage size in GB
-CLIP_DURATION = 180  # Duration of each recording clip in seconds (3 minutes)
-CHECK_STREAM_DELAY = 5  # Delay in seconds before checking stream availability after failure
-DELETE_CHECK_INTERVAL = 10  # Interval for checking and deleting old files
-record_counter = 0  # Counter to track deletion checks
-
 # Ensure the output folder exists
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-# Validate RTSP URL before running FFmpeg
-if not RTSP_URL or RTSP_URL.lower().startswith("rtsp url"):
-    logging.error("RTSP URL is not set or invalid. Please provide a valid RTSP stream URL.")
-    exit(1)
-
 def get_folder_size(folder):
-    """Calculate folder size in GB."""
+    """Calculate total folder size in GB."""
     total_size = sum(
         os.path.getsize(os.path.join(dirpath, filename))
         for dirpath, _, filenames in os.walk(folder)
@@ -41,88 +45,96 @@ def get_folder_size(folder):
     return total_size / (1024 ** 3)
 
 def delete_oldest_files_optimized(folder):
-    """Delete oldest files when storage limit is exceeded, checked at intervals."""
-    global record_counter
-    record_counter += 1
-    if record_counter % DELETE_CHECK_INTERVAL != 0:
-        return  # Skip deletion check if not at interval
-    
-    # Get sorted list of files by creation time
+    """Delete oldest files when storage limit is exceeded."""
     files = sorted(
         (os.path.join(folder, f) for f in os.listdir(folder)),
         key=os.path.getctime
     )
-    
-    # Delete oldest files until the folder size is within limit
+
     while get_folder_size(folder) > MAX_FOLDER_SIZE_GB and files:
         oldest = files.pop(0)
         os.remove(oldest)
         logging.info(f"Deleted old file: {oldest}")
 
 def is_rtsp_stream_available():
-    """Check if RTSP stream is available using ffprobe."""
+    """Check if RTSP stream is available using FFmpeg."""
     check_command = [
-        "ffprobe",
+        "ffmpeg",
         "-rtsp_transport", "tcp",
         "-i", RTSP_URL,
-        "-timeout", "5000000",
-        "-show_entries", "format=duration",
-        "-v", "quiet"
+        "-t", "3",  # Try to record 3 seconds
+        "-f", "null", "-"  # Discard output, just check connectivity
     ]
+    
     try:
-        subprocess.run(check_command, check=True, timeout=10)
-        return True
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        process = subprocess.run(check_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10)
+        return process.returncode == 0  # If return code is 0, stream is OK
+    except subprocess.TimeoutExpired:
         return False
 
-def record_video():
-    """Main loop to record RTSP stream, handle failures, and manage storage."""
+def start_recording():
+    """Start recording directly in MP4 format."""
+    today_folder = os.path.join(OUTPUT_FOLDER, datetime.now().strftime("%Y-%m-%d"))
+    os.makedirs(today_folder, exist_ok=True)
+
+    mp4_file = os.path.join(today_folder, f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.mp4")
+
+    logging.info(f"Starting new recording: {mp4_file}")
+
+    # log_file = os.path.join(today_folder, "ffmpeg_error.log")  # ✅ Save FFmpeg errors
+
+    command = [
+        "ffmpeg",
+        "-rtsp_transport", "tcp",
+        "-i", RTSP_URL,
+        "-c:v", "copy",
+        "-c:a", "aac", "-b:a", AUDIO_BITRATE,
+        "-movflags", "+frag_keyframe+empty_moov+faststart",  # ✅ Prevents corruption
+        "-timeout", str(FFMPEG_TIMEOUT),  # ✅ Load timeout from config.json
+        "-t", str(VIDEO_CLIP_DURATION),
+        "-y",
+        mp4_file
+    ]
+
+    with open(log_file, "a") as log:
+        process = subprocess.Popen(command, stdout=log, stderr=log)  # ✅ Capture errors
+
+    return process, mp4_file
+
+def monitor_and_recover():
+    """Monitor the FFmpeg process, restart if network disconnects."""
     while True:
-        try:
-            # Create folder for today's recordings
-            today_folder = os.path.join(OUTPUT_FOLDER, datetime.now().strftime("%Y-%m-%d"))
-            os.makedirs(today_folder, exist_ok=True)
-            
-            # Generate output file name with timestamp
-            output_file = os.path.join(today_folder, 
-                f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.mp4")
-            
-            logging.info("Using CPU for recording.")
-            command = [
-                "ffmpeg",
-                "-rtsp_transport", "tcp",
-                "-i", RTSP_URL,
-                "-c:v", "copy",  # Copy video stream directly
-                "-c:a", "aac", "-b:a", "64k",
-                "-t", str(CLIP_DURATION),
-                "-y",
-                output_file
-            ]
+        process, mp4_file = start_recording()
 
-            logging.info(f"Starting recording: {output_file}")
-            start_time = time.time()
-            
-            # Execute FFmpeg command and wait for completion
-            process = subprocess.run(command, 
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=CLIP_DURATION + 30)
-            
-            logging.info(f"Completed recording in {time.time() - start_time:.1f}s")
-            
-            # Manage storage by deleting old files if needed
-            delete_oldest_files_optimized(OUTPUT_FOLDER)
+        while True:
+            if process.poll() is not None:  # Check if process has stopped
+                logging.warning("FFmpeg stopped unexpectedly. Restarting...")
+                break
 
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-            logging.error(f"Recording failed: {str(e)}")
-            
-            # Attempt to reconnect if the stream is unavailable
-            while True:
-                logging.warning("Attempting stream reconnection...")
-                if is_rtsp_stream_available():
-                    logging.info("Stream reconnected. Resuming recordings.")
-                    break
-                time.sleep(CHECK_STREAM_DELAY)  # Wait before retrying
+            time.sleep(1)  # Small delay to reduce CPU usage
+
+            # Check if RTSP stream is down
+            if not is_rtsp_stream_available():
+                logging.warning("Network disconnected! Stopping current recording...")
+
+                # Kill FFmpeg process
+                process.terminate()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()  # Force kill if needed
+
+                logging.info(f"Recording saved: {mp4_file}")
+
+                # Wait for network to recover
+                while not is_rtsp_stream_available():
+                    logging.info("Waiting for network reconnection...")
+                    time.sleep(CHECK_STREAM_DELAY)
+
+                logging.info("Network reconnected. Starting new recording.")
+                break
+
+        delete_oldest_files_optimized(OUTPUT_FOLDER)
 
 if __name__ == "__main__":
-    record_video()
+    monitor_and_recover()
