@@ -1,9 +1,11 @@
 # CCTV Recorder
 
-This is a Python-based CCTV recording script that captures RTSP streams using `ffmpeg`. It automatically manages storage by deleting old recordings when a size limit is reached and now supports **automatic 10-minute clip splitting**.
+This is a Python-based CCTV recording script that captures RTSP streams using `ffmpeg`. It automatically manages storage by deleting old recordings when a size limit is reached and supports **automatic 10-minute clip splitting**.
+
+---
 
 ## 🎯 Why This Project?
-I created this script for my personal use because my IP camera requires a **paid cloud storage service** to store recordings. Since I did not want to pay for it, I searched for free tools but found none that met my needs.  
+I created this script for personal use because my IP camera requires a **paid cloud storage service** to store recordings. Since I did not want to pay for it, I searched for free tools but found none that met my needs.  
 As a result, I developed this script **with the help of ChatGPT** to provide a **free, local recording solution**.  
 
 If this script is useful to you, feel free to **contribute and improve it!** 🚀  
@@ -16,7 +18,9 @@ If this script is useful to you, feel free to **contribute and improve it!** �
 👉 **Uses `config.json` for Easy Configuration** (No need to edit Python code)  
 👉 **Monitors RTSP Stream & Auto-Reconnects if Disconnected**  
 👉 **Prevents Storage Overload** (Deletes old files when disk space exceeds limit)  
-👉 **Detailed Logging for Debugging** (`cctv_recorder.log`)  
+👉 **Detailed JSON-based Logging for Debugging** (`cctv_recorder_log.json`)  
+👉 **Prevents Multiple Instances from Running**  
+👉 **Proper Cleanup on Exit**  
 
 ---
 
@@ -24,21 +28,35 @@ If this script is useful to you, feel free to **contribute and improve it!** �
 - **Python 3.x**
 - **FFmpeg** installed and available in the system path  
   *(For Windows, ensure `ffmpeg.exe` is installed and added to PATH.)*
-- **`ffprobe`** for stream checking  
+- **`ffprobe`** for stream checking
+- **OpenCV (`cv2`) for RTSP stream validation**
+- **Python Packages:** `opencv-python`, `ffmpeg-python`
 
 ---
 
 ## **🗂️ Installation & Setup**
-1️⃣ **Install FFmpeg**  
-   - **Linux:**  
-     ```sh
-     sudo apt update && sudo apt install -y ffmpeg
-     ```
-   - **Windows:**  
-     - Download FFmpeg from [https://ffmpeg.org/download.html](https://ffmpeg.org/download.html)  
-     - Add it to **System PATH**  
 
-2️⃣ **Configure Settings in `config.json`**  
+### 1️⃣ Install Dependencies  
+
+#### **Linux**
+```sh
+sudo apt update && sudo apt install -y ffmpeg python3-opencv python3-pip
+pip3 install ffmpeg-python
+```
+
+#### **Windows**
+1. **Download & Install FFmpeg** from [https://ffmpeg.org/download.html](https://ffmpeg.org/download.html)  
+   - Ensure FFmpeg is added to **System PATH**
+2. **Install Python Dependencies**  
+   ```sh
+   pip install opencv-python ffmpeg-python
+   ```
+3. **Alternative: Install via `requirements.txt`**  
+   ```sh
+   pip install -r requirements.txt
+   ```
+
+### 2️⃣ Configure Settings in `config.json`  
    - Open **`config.json`** and modify the parameters:
      ```json
      {
@@ -58,7 +76,7 @@ If this script is useful to you, feel free to **contribute and improve it!** �
      - `VIDEO_CLIP_DURATION` → Recording length per file (default: **10 minutes**).
      - `MAX_FOLDER_SIZE_GB` → When exceeded, **oldest recordings are deleted**.
 
-3️⃣ **Run the Script**  
+### 3️⃣ Run the Script  
    ```sh
    python cctv_recorder.py
    ```
@@ -82,8 +100,16 @@ If this script is useful to you, feel free to **contribute and improve it!** �
 ---
 
 ## **🛠 Logging & Debugging**
-- **All logs are saved in `cctv_recorder.log`** with automatic rotation (5MB per file, max 3 logs).  
-- **FFmpeg errors** are saved in `ffmpeg_error.log` (inside the output folder).  
+- **All logs are saved in `cctv_recorder_log.json`** with automatic rotation.
+- **FFmpeg errors** are captured in logs for debugging.
+- **Log Example:**
+  ```json
+  {
+      "timestamp": "2025-02-23T10:00:00",
+      "level": "INFO",
+      "message": "Starting new recording: 2025-02-23_10-00-00.mp4"
+  }
+  ```
 
 👉 **Check logs if the script stops recording or crashes!**  
 
@@ -91,7 +117,8 @@ If this script is useful to you, feel free to **contribute and improve it!** �
 
 ## **💡 Additional Notes**
 - Make sure your **RTSP URL is correct** by testing it in **VLC Media Player** before running the script.
-- If you experience **crashes after long network failures**, set up **Task Scheduler** to restart the script automatically.
+- If you experience **crashes after long network failures**, set up **Task Scheduler (Windows) or a Systemd Service (Linux)** to restart the script automatically.
+- The script **prevents multiple instances from running** to avoid conflicts.
 
 ---
 
