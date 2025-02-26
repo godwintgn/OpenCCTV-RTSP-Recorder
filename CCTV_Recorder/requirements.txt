@@ -1,0 +1,6 @@
+ttkbootstrap
+psutil
+ffmpeg-python
+opencv-python
+requests
+pyyaml
