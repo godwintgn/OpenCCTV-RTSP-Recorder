@@ -185,6 +185,4 @@ This project is open-source and licensed under the **GNU General Public License 
 
 For more details, see [GPLv3 License](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
----
 
-### ✅ **Updated README with auto-start details & GUI sync!** 🚀 Let me know if you need further improvements!
