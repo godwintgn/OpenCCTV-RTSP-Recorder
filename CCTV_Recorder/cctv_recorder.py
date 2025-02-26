@@ -1,3 +1,4 @@
+__version__ = "3.0.0"
 import os
 import time
 import json

@@ -1,3 +1,4 @@
+__version__ = "1.0.0"
 import os
 import psutil
 import tempfile
@@ -194,7 +195,7 @@ root.resizable(False, False)
 frame = ttk.Frame(root, padding=20)
 frame.pack(expand=True, fill=BOTH)
 
-title_label = ttk.Label(frame, text="🎥 CCTV Recorder Control", font=("Arial", 16, "bold"))
+title_label = ttk.Label(frame, text=f"🎥 CCTV Recorder Control - v{__version__}", font=("Arial", 16, "bold"))
 title_label.pack(pady=15)
 
 status_label = ttk.Label(frame, text="⏳ Checking...", font=("Arial", 12, "bold"))
