@@ -1,7 +1,7 @@
-__version__ = "1.0.0"
 import os
 import psutil
 import tempfile
+import sys
 import subprocess
 import time
 import json
@@ -53,8 +53,17 @@ def get_latest_recording_filename():
 
 def start_script():
     if get_process_status():
-        return
-    subprocess.Popen(["python", SCRIPT_PATH], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return  # Don't start if already running
+
+    python_exec = sys.executable.replace("python.exe", "pythonw.exe")  # Ensure GUI execution
+    subprocess.Popen(
+        [python_exec, SCRIPT_PATH],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,  # ✅ Detaches from PowerShell session
+        creationflags=subprocess.DETACHED_PROCESS  # ✅ Ensures background execution
+    )
+    
     time.sleep(1)
     update_status()
 
@@ -195,7 +204,7 @@ root.resizable(False, False)
 frame = ttk.Frame(root, padding=20)
 frame.pack(expand=True, fill=BOTH)
 
-title_label = ttk.Label(frame, text=f"🎥 CCTV Recorder Control - v{__version__}", font=("Arial", 16, "bold"))
+title_label = ttk.Label(frame, text="🎥 CCTV Recorder Control", font=("Arial", 16, "bold"))
 title_label.pack(pady=15)
 
 status_label = ttk.Label(frame, text="⏳ Checking...", font=("Arial", 12, "bold"))

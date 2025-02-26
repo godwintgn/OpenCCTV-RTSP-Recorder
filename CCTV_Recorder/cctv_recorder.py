@@ -1,4 +1,3 @@
-__version__ = "3.0.0"
 import os
 import time
 import json
@@ -8,6 +7,7 @@ import cv2  # ✅ Added OpenCV for RTSP checking
 import subprocess
 import signal  # ✅ Added signal handling for cleanup
 import atexit
+import sys
 import tempfile  # ✅ Use temp directory for PID file
 import psutil  # Add at the top of the script
 from logging.handlers import RotatingFileHandler
@@ -159,17 +159,34 @@ def is_rtsp_stream_available():
 def start_recording():
     """Start recording directly in MP4 format and delete old files if storage is full."""
     logging.info("Starting a new recording...")
+
     today_folder = os.path.join(OUTPUT_FOLDER, datetime.now().strftime("%Y-%m-%d"))
     os.makedirs(today_folder, exist_ok=True)
     delete_oldest_files_optimized(OUTPUT_FOLDER)
+
     mp4_file = os.path.join(today_folder, f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.mp4")
     logging.info(f"Recording to file: {mp4_file}")
-    process = (
-        ffmpeg.input(RTSP_URL, rtsp_transport='tcp')
-        .output(mp4_file, vcodec='copy', acodec='aac', audio_bitrate=AUDIO_BITRATE, 
-                movflags='+frag_keyframe+empty_moov+faststart', t=VIDEO_CLIP_DURATION)
-        .run_async(pipe_stdout=True, pipe_stderr=True)
+
+    ffmpeg_command = [
+        "ffmpeg", "-rtsp_transport", "tcp", "-i", RTSP_URL, 
+        "-vcodec", "copy", "-acodec", "aac", "-b:a", AUDIO_BITRATE, 
+        "-movflags", "+frag_keyframe+empty_moov+faststart", 
+        "-t", str(VIDEO_CLIP_DURATION), mp4_file
+    ]
+
+    # Ensure FFmpeg runs in hidden mode without popping up
+    startupinfo = None
+    if sys.platform == "win32":
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW  # Hides the window
+
+    process = subprocess.Popen(
+        ffmpeg_command,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,  # Windows: No new window
+        startupinfo=startupinfo  # Hides FFmpeg console
     )
+
     return process, mp4_file
 
 def monitor_and_recover():
