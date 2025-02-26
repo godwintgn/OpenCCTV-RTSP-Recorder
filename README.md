@@ -32,21 +32,21 @@ This script was created as a **free alternative** to paid cloud storage solution
 ### **Stopped State**
 If the script is not running, the GUI shows a **stopped** status. The **Start Recording** button is enabled, and the **Stop Recording** button is disabled.
 
-![Stopped State] <p align="center">  <img src="./CCTV_Recorder/python_hZ9HQle4rE.png" alt="CCTV Recorder Stopped"> </p>
+ <p align="center">  <img src="./CCTV_Recorder/python_hZ9HQle4rE.png" alt="CCTV Recorder Stopped"> </p>
 
 ---
 
 ### **Settings Window**
 The **Settings** window allows configuring the RTSP stream, output folder, storage limit, and video clip duration.
 
-![Settings Window] <p align="center">  <img src="./CCTV_Recorder/python_MRajEWsWc0.png" alt="CCTV Recorder Settings"> </p>
+ <p align="center">  <img src="./CCTV_Recorder/python_MRajEWsWc0.png" alt="CCTV Recorder Settings"> </p>
 
 ---
 
 ### **Running State**
 If the script is running in the background (started manually or at boot), the GUI automatically detects its status and updates accordingly.
 
-![Running State] <p align="center">  <img src="./CCTV_Recorder/python_pjB2i359JF.png" alt="CCTV Recorder Running"> </p>
+ <p align="center">  <img src="./CCTV_Recorder/python_pjB2i359JF.png" alt="CCTV Recorder Running"> </p>
 
 ---
 
