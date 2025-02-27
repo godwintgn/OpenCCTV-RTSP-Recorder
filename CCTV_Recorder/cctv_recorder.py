@@ -3,13 +3,13 @@ import time
 import json
 import logging
 import ffmpeg
-import cv2  # ✅ Added OpenCV for RTSP checking
+import cv2  
 import subprocess
-import signal  # ✅ Added signal handling for cleanup
+import signal  
 import atexit
 import sys
 import tempfile  # ✅ Use temp directory for PID file
-import psutil  # Add at the top of the script
+import psutil  
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
 
@@ -34,7 +34,7 @@ FFMPEG_TIMEOUT        = config["FFMPEG_TIMEOUT"]
 AUDIO_BITRATE         = config["AUDIO_BITRATE"]
 VIDEO_CLIP_DURATION   = config["VIDEO_CLIP_DURATION"]
 
-# ✅ Configure rotating log file in JSON format
+# ✅ Setup Rotating Log File
 class JSONFormatter(logging.Formatter):
     def format(self, record):
         log_record = {
@@ -49,7 +49,7 @@ log_handler.setFormatter(JSONFormatter())
 logging.getLogger().addHandler(log_handler)
 logging.getLogger().setLevel(logging.INFO)
 
-# ✅ Ensure output folder exists
+# ✅ Ensure Output Folder Exists
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 def check_already_running():
@@ -66,19 +66,19 @@ def check_already_running():
                     logging.error("Another instance is already running. Exiting...")
                     exit(1)
 
-    # Kill any leftover FFmpeg processes before starting
+    # ✅Kill any leftover FFmpeg processes before starting
     for proc in psutil.process_iter(['pid', 'name']):
         if proc.info['name'] and "ffmpeg" in proc.info['name'].lower():
             logging.warning(f"Terminating leftover FFmpeg process: {proc.info['pid']}")
             psutil.Process(proc.info['pid']).terminate()
 
-    # Ensure all FFmpeg processes are stopped
+    # ✅Ensure all FFmpeg processes are stopped
     gone, alive = psutil.wait_procs([psutil.Process(p.info['pid']) for p in psutil.process_iter(['pid', 'name']) if "ffmpeg" in p.info['name'].lower()], timeout=5)
     for p in alive:
         logging.warning(f"Force killing FFmpeg process: {p.pid}")
         p.kill()
 
-    # If no valid running instance found, create new PID file
+    # ✅If no valid running instance found, create new PID file
     with open(PID_FILE, "w") as f:
         f.write(str(os.getpid()))
     logging.info("PID file created, script running.")
@@ -174,7 +174,7 @@ def start_recording():
         "-t", str(VIDEO_CLIP_DURATION), mp4_file
     ]
 
-    # Ensure FFmpeg runs in hidden mode without popping up
+    # ✅Ensure FFmpeg runs in hidden mode without popping up
     startupinfo = None
     if sys.platform == "win32":
         startupinfo = subprocess.STARTUPINFO()
