@@ -1,5 +1,5 @@
 {
-    "RTSP_URL": "rtsp://admin:admin@ip_address/stream",
+    "RTSP_URL": "rtsp://admin:admin@ip_address:554/stream",
     "OUTPUT_FOLDER": "C:\\Users\\Godwin\\Videos\\cctv_entrance",
     "MAX_FOLDER_SIZE_GB": 20,
     "VIDEO_CLIP_DURATION": 600,
